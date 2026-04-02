@@ -41,9 +41,16 @@
         // =========================================================================
         // PENTING: Ganti URL di bawah dengan URL WEB APP Google Apps Script Anda!
         // =========================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPQ-R9y2Ojp_-H51n4vuE78D6G0m24BuPFgqWgKATQ17RUOsfRkQinh3nWTvj8p-QTHg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzz9AP8Wot1CKgNb_9c-4pvMehS0DEal5oK3q5Xuf3lY26VCwCyYNvyCMj3YZ5sx06hyQ/exec";
 
         const { useState, useEffect, useRef } = React;
+
+        // --- Pilihan Golongan ---
+        const GOLONGAN_OPTIONS = [
+            "Juru Muda, I/a", "Juru Muda Tingkat I, I/b", "Juru, I/c", "Juru Tingkat I, I/d",
+            "Pengatur Muda, II/a", "Pengatur Muda Tingkat I, II/b", "Pengatur, II/c", "Pengatur Tingkat I, II/d",
+            "Penata Muda, III/a", "Penata Muda Tingkat I, III/b", "Penata, III/c", "Penata Tingkat I, III/d"
+        ];
 
         // --- Utils: Terbilang ---
         const terbilang = (angka) => {
@@ -169,21 +176,20 @@
             if (!data) return null;
             const currentYear = new Date().getFullYear();
 
-            // FIX: Metode teraman untuk bypass blokir CORS Drive di img tag
+            // FIX URL TANDA TANGAN (Menggunakan direct lh3 link agar tidak diblokir Google Drive)
             let sigUrl = data.signatureKadis;
             if (sigUrl && sigUrl.includes('/file/d/')) {
                 const match = sigUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
                 if (match && match[1]) {
-                    // lh3.googleusercontent.com mengizinkan render img tanpa check referer ketat
                     sigUrl = `https://lh3.googleusercontent.com/d/${match[1]}`;
                 }
             }
 
-            // --- GENERATE QR CODE DINAMIS DENGAN LOGO TUT WURI ---
-            const qrDataText = `e-KGB Disdikpora Donggala\n-------------------------\nNama: ${data.nama}\nNIP: ${data.nip}\nGol: ${data.pangkatGol}\nGaji Baru: ${formatRupiah(data.gajiBaru)}\nTMT: ${formatDate(data.tglBerlaku)}`;
+            // --- GENERATE QR CODE DINAMIS DENGAN CSS OVERLAY TUT WURI ---
+            const qrDataText = `e-KGB Disdikpora Donggala\nNama: ${data.nama}\nNIP: ${data.nip}\nGol: ${data.pangkatGol}\nGaji Baru: ${formatRupiah(data.gajiBaru)}\nTMT: ${formatDate(data.tglBerlaku)}`;
+            // Menggunakan API QR murni (tanpa logo api) tapi dengan Quality H (High 30%) agar aman ditimpa logo
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=H&data=${encodeURIComponent(qrDataText)}`;
             const tutWuriUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg/200px-Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg.png";
-            // QuickChart API sangat tangguh untuk generate QR berlogo dengan cepat
-            const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrDataText)}&centerImageUrl=${encodeURIComponent(tutWuriUrl)}&size=150&margin=1`;
 
             return (
                 <div className="bg-white w-full max-w-4xl mx-auto shadow-xl border font-serif text-sm relative overflow-hidden text-black" style={{ minHeight: '297mm', padding: '2cm' }}>
@@ -256,9 +262,13 @@
 
                     <div className="flex justify-between items-end mt-12 mb-16 relative">
                         
-                        {/* BAGIAN KIRI: QR CODE */}
+                        {/* BAGIAN KIRI: QR CODE & LOGO OVERLAY Cerdas */}
                         <div className="w-48 flex flex-col items-center ml-4">
-                             <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-24 h-24 mb-1 border p-1" />
+                             <div className="relative w-24 h-24 mb-1 p-1 bg-white border border-gray-300 rounded flex items-center justify-center">
+                                 <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" crossOrigin="anonymous" />
+                                 {/* Logo diletakkan absolut tepat di tengah QR Code */}
+                                 <img src={tutWuriUrl} alt="Logo" className="absolute w-6 h-6 bg-white p-0.5 rounded shadow-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" crossOrigin="anonymous" />
+                             </div>
                              <p className="text-[10px] text-center text-gray-500 italic">Scan untuk<br/>Verifikasi Keaslian</p>
                         </div>
 
@@ -269,7 +279,7 @@
                             
                             <div className="h-24 relative flex items-center justify-center">
                                 {sigUrl ? (
-                                    <img src={sigUrl} alt="Tanda Tangan Kadis" className="h-28 object-contain absolute mix-blend-multiply" style={{top: '-10px', left: '10px'}} />
+                                    <img src={sigUrl} alt="Tanda Tangan Kadis" className="h-28 object-contain absolute mix-blend-multiply" style={{top: '-10px', left: '10px'}} crossOrigin="anonymous" />
                                 ) : (
                                     <div className="text-gray-300 italic text-xs">(Belum Ditandatangani)</div>
                                 )}
@@ -337,9 +347,13 @@
             const [user, setUser] = useState(null);
             const [applications, setApplications] = useState([]);
             const [isLoading, setIsLoading] = useState(false);
+            
+            // Login View State ('pegawai', 'verifikator', 'kadis')
+            const [loginTab, setLoginTab] = useState('pegawai');
 
             // Form States
             const [loginForm, setLoginForm] = useState({ nip: '', nama: '', wa: '' });
+            const [authForm, setAuthForm] = useState({ username: '', password: '' });
             const [formData, setFormData] = useState({
                 tempatLahir: '', tanggalLahir: '', pangkatGol: '', jabatan: '', unitKerja: '',
                 gajiLama: '', tglGajiLama: '', tmtLama: '', masaKerjaLamaTahun: '', masaKerjaLamaBulan: '',
@@ -353,12 +367,12 @@
             const [showSignaturePad, setShowSignaturePad] = useState(false);
             const [showDocumentPreview, setShowDocumentPreview] = useState(false);
 
-            // Fetch Data dari Google Sheet
+            // Fetch Data dari Google Sheet segera setelah Web dimuat
             useEffect(() => {
-                if(user && SCRIPT_URL !== "MASUKKAN_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DISINI") {
+                if(SCRIPT_URL !== "MASUKKAN_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DISINI") {
                     fetchData();
                 }
-            }, [user]);
+            }, []);
 
             const fetchData = async () => {
                 setIsLoading(true);
@@ -378,6 +392,19 @@
                 setUser(null); 
                 setSelectedApp(null); 
                 setShowDocumentPreview(false);
+                setAuthForm({ username: '', password: '' });
+            };
+
+            // FUNGSI AJAIB: AUTO FILL NAMA & WA SAAT NIP DIKETIK
+            const handlePegawaiNipChange = (e) => {
+                const val = e.target.value;
+                const foundPegawai = applications.find(app => app.nip === val);
+                
+                if (foundPegawai) {
+                    setLoginForm({ nip: val, nama: foundPegawai.nama, wa: foundPegawai.wa });
+                } else {
+                    setLoginForm({ ...loginForm, nip: val });
+                }
             };
 
             const handleLoginPegawai = (e) => {
@@ -386,6 +413,33 @@
                     setUser({ role: 'pegawai', data: loginForm });
                     setActiveTab('list');
                 }
+            };
+
+            // FUNGSI LOGIN ADMIN (Verifikator & Kadis)
+            const handleAdminLogin = async (e) => {
+                e.preventDefault();
+                if(SCRIPT_URL === "MASUKKAN_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DISINI") {
+                    alert("URL SCRIPT BELUM DIISI!"); return;
+                }
+                setIsLoading(true);
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'LOGIN', data: { role: loginTab, ...authForm } })
+                    });
+                    const resJson = await response.json();
+                    
+                    if(resJson.status === 'success') {
+                        setUser({ role: loginTab, data: { nama: loginTab === 'kadis' ? 'Kepala Dinas' : 'Verifikator Admin' } });
+                        setActiveTab('verify');
+                    } else {
+                        alert(resJson.message); // Muncul jika pass salah
+                    }
+                } catch(err) {
+                    alert("Koneksi gagal. Cek jaringan.");
+                }
+                setIsLoading(false);
             };
 
             const handleGolonganChange = (e) => {
@@ -518,11 +572,15 @@
                 window.print();
             };
 
-            // --- FUNGSI WA OTOMATIS + TAUTAN PENGUMUMAN ---
+            // --- FUNGSI WA OTOMATIS + TAUTAN PENGUMUMAN (PERBAIKAN KODE NEGARA) ---
             const handleWA = (waNumber, nama, status) => {
                 let phone = String(waNumber).replace(/\D/g, ''); 
+                
+                // Mencegah error +81 jika user ngetik 813... langsung
                 if (phone.startsWith('0')) {
                     phone = '62' + phone.substring(1); 
+                } else if (phone.startsWith('8')) {
+                    phone = '62' + phone; 
                 }
                 
                 let text = `Halo Bapak/Ibu ${nama},\n\n`;
@@ -531,7 +589,6 @@
                 else if (status === 'SIGNED') text += `Pengajuan KGB Anda telah disetujui & ditandatangani Kepala Dinas. Saat ini dalam proses cetak.`;
                 else if (status === 'COMPLETED') text += `Proses pembuatan SK KGB Anda telah *SELESAI*. Silakan login ke aplikasi e-KGB untuk melihat dan mengunduh berkas Anda.`;
                 
-                // Tambahan link informasi sesuai request
                 text += `\n\nSilakan cek status dan unduh dokumen Anda secara mandiri pada tautan berikut:\nhttps://dikporadonggala-lab.github.io/e-KGBdisdikpora/`;
                 
                 window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
@@ -547,41 +604,67 @@
                 }
             };
 
+            // TAMPILAN SISTEM LOGIN YANG BARU
             const renderViews = () => {
                 if (!user) {
                     return (
                         <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row">
+                            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative">
+                                {isLoading && (
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-blue-200 overflow-hidden z-50">
+                                        <div className="h-full bg-blue-600 animate-pulse">Loading...</div>
+                                    </div>
+                                )}
+                                
                                 <div className="bg-blue-700 p-8 text-white flex flex-col justify-center items-center md:w-2/5 text-center">
                                     <img src="https://i.ibb.co.com/5xhN0cm1/Logo-Donggala.png" alt="Logo" className="w-32 h-32 object-contain mb-6 drop-shadow-lg bg-white/10 rounded-full p-2" />
                                     <h1 className="text-2xl font-bold mb-2">e-KGB Donggala</h1>
                                     <p className="text-blue-100 text-sm">Sistem Informasi Kenaikan Gaji Berkala<br/>Dinas Pendidikan Pemuda & Olahraga</p>
                                 </div>
-                                <div className="p-8 md:w-3/5">
-                                    <h2 className="text-xl font-bold text-slate-800 mb-6">Masuk ke Sistem</h2>
+                                <div className="p-8 md:w-3/5 bg-white">
+                                    <div className="flex gap-4 border-b mb-6">
+                                        <button onClick={()=>setLoginTab('pegawai')} className={`flex-1 pb-3 font-bold transition-all text-sm sm:text-base ${loginTab==='pegawai'?'text-blue-600 border-b-2 border-blue-600':'text-gray-400 hover:text-blue-400'}`}>Pemohon</button>
+                                        <button onClick={()=>setLoginTab('verifikator')} className={`flex-1 pb-3 font-bold transition-all text-sm sm:text-base ${loginTab==='verifikator'?'text-amber-500 border-b-2 border-amber-500':'text-gray-400 hover:text-amber-400'}`}>Verifikator</button>
+                                        <button onClick={()=>setLoginTab('kadis')} className={`flex-1 pb-3 font-bold transition-all text-sm sm:text-base ${loginTab==='kadis'?'text-emerald-600 border-b-2 border-emerald-600':'text-gray-400 hover:text-emerald-400'}`}>Kadis</button>
+                                    </div>
+                                    
                                     <div className="space-y-6">
-                                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
-                                            <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-4"><i className="fas fa-user text-blue-600"></i> Login Pemohon (Pegawai)</h3>
+                                        {loginTab === 'pegawai' ? (
                                             <form onSubmit={handleLoginPegawai} className="space-y-4">
                                                 <div>
                                                     <label className="text-sm font-medium text-slate-600 block mb-1">Nomor Induk Pegawai (NIP)</label>
-                                                    <input type="text" placeholder="Masukkan NIP" required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={loginForm.nip} onChange={e => setLoginForm({...loginForm, nip: e.target.value})} />
+                                                    <input type="text" placeholder="Ketik NIP Anda..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-medium" value={loginForm.nip} onChange={handlePegawaiNipChange} />
                                                 </div>
                                                 <div>
                                                     <label className="text-sm font-medium text-slate-600 block mb-1">Nama Lengkap</label>
-                                                    <input type="text" placeholder="Masukkan Nama" required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={loginForm.nama} onChange={e => setLoginForm({...loginForm, nama: e.target.value})} />
+                                                    <input type="text" placeholder="Masukkan Nama" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.nama} onChange={e => setLoginForm({...loginForm, nama: e.target.value})} />
+                                                    {applications.find(a=>a.nip===loginForm.nip) && <p className="text-xs text-green-600 mt-1"><i className="fas fa-check-circle"></i> Data ditemukan! Nama & WA diisi otomatis.</p>}
                                                 </div>
                                                 <div>
                                                     <label className="text-sm font-medium text-slate-600 block mb-1">No. WhatsApp</label>
-                                                    <input type="text" placeholder="Contoh: 08123456789" required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={loginForm.wa} onChange={e => setLoginForm({...loginForm, wa: e.target.value})} />
+                                                    <input type="text" placeholder="Contoh: 08123456789" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.wa} onChange={e => setLoginForm({...loginForm, wa: e.target.value})} />
                                                 </div>
-                                                <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold shadow-md">Masuk sebagai Pegawai</button>
+                                                <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold shadow-md mt-2">Masuk ke Dashboard</button>
                                             </form>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <button onClick={() => setUser({ role: 'verifikator' })} className="flex-1 bg-amber-500 text-white py-3 rounded-xl hover:bg-amber-600 font-medium flex items-center justify-center gap-2"><i className="fas fa-shield-alt"></i> Verifikator</button>
-                                            <button onClick={() => setUser({ role: 'kadis' })} className="flex-1 bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 font-medium flex items-center justify-center gap-2"><i className="fas fa-briefcase"></i> Kadis</button>
-                                        </div>
+                                        ) : (
+                                            <form onSubmit={handleAdminLogin} className="space-y-4">
+                                                <div className="bg-slate-50 p-4 rounded-lg mb-4 text-sm text-slate-600 border flex items-start gap-2">
+                                                    <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                                                    <p>Silakan masukkan Username dan Password untuk mengakses sistem {loginTab === 'kadis' ? 'Persetujuan Kepala Dinas' : 'Verifikasi Kepegawaian'}.</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-slate-600 block mb-1">Username</label>
+                                                    <input type="text" placeholder="Ketik username..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={authForm.username} onChange={e => setAuthForm({...authForm, username: e.target.value})} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-slate-600 block mb-1">Password</label>
+                                                    <input type="password" placeholder="Ketik password..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} />
+                                                </div>
+                                                <button type="submit" disabled={isLoading} className={`w-full text-white py-3 rounded-lg font-bold shadow-md mt-2 disabled:opacity-50 ${loginTab === 'verifikator' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                                                    {isLoading ? 'Memproses...' : `Masuk sebagai ${loginTab === 'kadis' ? 'Kadis' : 'Verifikator'}`}
+                                                </button>
+                                            </form>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -641,8 +724,11 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-semibold text-slate-600 block mb-1.5 cursor-pointer">Pangkat/Golongan (Contoh: Pengatur, II/c)</label>
-                                                <input type="text" required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-4" value={formData.pangkatGol} onChange={handleGolonganChange}/>
+                                                <label className="text-sm font-semibold text-slate-600 block mb-1.5 cursor-pointer">Pangkat/Golongan</label>
+                                                <select required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-4 text-slate-700 font-medium cursor-pointer" value={formData.pangkatGol} onChange={handleGolonganChange}>
+                                                    <option value="" disabled>-- Pilih Pangkat dan Golongan --</option>
+                                                    {GOLONGAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
                                             </div>
                                             <div>
                                                 <label className="text-sm font-semibold text-slate-600 block mb-1.5 cursor-pointer">Jabatan</label>
