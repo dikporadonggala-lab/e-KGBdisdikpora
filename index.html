@@ -41,7 +41,7 @@
         // =========================================================================
         // PENTING: Ganti URL di bawah dengan URL WEB APP Google Apps Script Anda!
         // =========================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzz9AP8Wot1CKgNb_9c-4pvMehS0DEal5oK3q5Xuf3lY26VCwCyYNvyCMj3YZ5sx06hyQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqrNzi0iRtb3v2q_p4jFgG8YNH4-fTm2XgsrwBt8B5QDmkTyOpWHolr3XPXa9QDg2keA/exec";
 
         const { useState, useEffect, useRef } = React;
 
@@ -264,8 +264,8 @@
                         <div className="w-48 flex flex-col items-center ml-4">
                              <div className="relative w-24 h-24 mb-1 p-1 bg-white border border-gray-300 rounded flex items-center justify-center">
                                  <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" crossOrigin="anonymous" />
-                                 {/* Logo Donggala diletakkan absolut tepat di tengah QR Code */}
-                                 <img src={logoDonggalaUrl} alt="Logo" className="absolute w-6 h-6 bg-white p-0.5 rounded-full shadow-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" crossOrigin="anonymous" />
+                                 {/* Logo Donggala diletakkan absolut tepat di tengah QR Code (Dihapus crossOrigin agar tidak Error) */}
+                                 <img src={logoDonggalaUrl} alt="Logo Donggala" className="absolute w-6 h-6 bg-white p-0.5 rounded shadow-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                              </div>
                              <p className="text-[12px] font-bold text-center text-blue-800 italic mt-1">Scan QR</p>
                         </div>
@@ -584,9 +584,9 @@
             const handleWA = (waNumber, nama, status) => {
                 let phone = String(waNumber).replace(/\D/g, ''); 
                 
-                // Mencegah error jika data di database terlanjur berisi NIP pemohon (18 digit angka)
-                if (phone.length >= 16) {
-                    alert("Gagal Buka WhatsApp.\n\nData No. HP pemohon ini tampaknya salah (Berisi NIP: " + phone + "). Hubungi pemohon secara manual.");
+                // Mencegah error jika data di database terlanjur berisi NIP pemohon (18 digit angka / awalan 19)
+                if (phone.length >= 16 || phone.startsWith('19')) {
+                    alert("Gagal Buka WhatsApp.\n\nData No. HP pemohon ini tampaknya salah (Sepertinya berisi NIP: " + phone + ").\nSilakan hapus data pengajuan tes ini dan ajukan ulang dengan No WA yang benar.");
                     return;
                 }
 
@@ -616,6 +616,7 @@
                     case 'VERIFIED': return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold w-max"><i className="fas fa-shield-alt mr-1"></i>Menunggu TTD Kadis</span>;
                     case 'SIGNED': return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-bold w-max"><i className="fas fa-file-signature mr-1"></i>Siap Cetak & Upload</span>;
                     case 'COMPLETED': return <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold w-max"><i className="fas fa-check-circle mr-1"></i>Selesai</span>;
+                    case 'REJECTED': return <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold w-max"><i className="fas fa-times-circle mr-1"></i>Ditolak</span>;
                     default: return null;
                 }
             };
@@ -860,6 +861,7 @@
                                                                     <>
                                                                         {app.fileBerkalaLamaUrl && <a href={app.fileBerkalaLamaUrl} target="_blank" className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-medium text-xs"><i className="fas fa-file-pdf mr-1"></i> Cek Berkas</a>}
                                                                         <button onClick={() => updateStatusKeDatabase(app.id, 'VERIFIED')} className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 font-medium text-xs"><i className="fas fa-check-circle mr-1"></i> Setujui</button>
+                                                                        <button onClick={() => { if(window.confirm('Tolak pengajuan ini karena berkas tidak sesuai?')) updateStatusKeDatabase(app.id, 'REJECTED') }} className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 font-medium text-xs"><i className="fas fa-times-circle mr-1"></i> Tolak</button>
                                                                     </>
                                                                 )}
                                                                 {app.status === 'SIGNED' && (
