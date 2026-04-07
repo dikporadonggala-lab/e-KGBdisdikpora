@@ -41,7 +41,7 @@
         // =========================================================================
         // PENTING: Ganti URL di bawah dengan URL WEB APP Google Apps Script Anda!
         // =========================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqrNzi0iRtb3v2q_p4jFgG8YNH4-fTm2XgsrwBt8B5QDmkTyOpWHolr3XPXa9QDg2keA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqAy3hbV-_g50e2eIYrlVse-ng9UxRZa-zSNGdVxEdBbrDz5zkQ9O9F4kJpOvoFGF71g/exec";
 
         const { useState, useEffect, useRef } = React;
 
@@ -172,10 +172,11 @@
         };
 
         // --- Component: Dokumen Template (Surat KGB) ---
-        const SuratBerkala = ({ data }) => {
+        const SuratBerkala = ({ data, printData }) => {
             if (!data) return null;
             const currentYear = new Date().getFullYear();
 
+            // FIX URL TANDA TANGAN
             let sigUrl = data.signatureKadis;
             if (sigUrl && sigUrl.includes('/file/d/')) {
                 const match = sigUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -184,45 +185,53 @@
                 }
             }
 
-            // --- QR CODE DINAMIS DENGAN LOGO DONGGALA ---
+            // --- QR CODE DINAMIS (DENGAN LOGO DONGGALA DI TENGAH) ---
             const qrDataText = `e-KGB Disdikpora Donggala\nNama: ${data.nama}\nNIP: ${data.nip}\nGol: ${data.pangkatGol}\nGaji Baru: ${formatRupiah(data.gajiBaru)}\nTMT: ${formatDate(data.tglBerlaku)}`;
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=H&data=${encodeURIComponent(qrDataText)}`;
             const logoDonggalaUrl = "https://i.ibb.co.com/5xhN0cm1/Logo-Donggala.png";
 
             return (
-                <div className="bg-white w-full max-w-4xl mx-auto shadow-xl border font-serif text-sm relative overflow-hidden text-black" style={{ minHeight: '297mm', padding: '2cm' }}>
-                    <div className="flex items-center justify-center border-b-4 border-black pb-4 mb-6">
-                        <div className="w-24 flex-shrink-0">
+                <div className="bg-white w-full max-w-4xl mx-auto shadow-xl border font-serif text-[12.5px] leading-snug relative overflow-hidden text-black" style={{ minHeight: '330mm', padding: '1.5cm 1.5cm' }}>
+                    <div className="flex items-center justify-center border-b-4 border-black pb-3 mb-4">
+                        <div className="w-20 flex-shrink-0">
                             <img src={logoDonggalaUrl} alt="Logo Donggala" className="w-full h-auto" />
                         </div>
-                        <div className="text-center flex-grow px-4">
-                            <h2 className="text-xl font-bold uppercase tracking-wide">PEMERINTAH KABUPATEN DONGGALA</h2>
-                            <h1 className="text-2xl font-bold uppercase tracking-wider mt-1 mb-1">DINAS PENDIDIKAN PEMUDA DAN OLAHRAGA</h1>
-                            <p className="text-sm">Alamat: Jalan Jati Gunung Bale Telp. (0457) 71775-71885 Donggala</p>
+                        <div className="text-center flex-grow px-2">
+                            <h2 className="text-lg font-bold uppercase tracking-wide">PEMERINTAH KABUPATEN DONGGALA</h2>
+                            <h1 className="text-xl font-bold uppercase tracking-wider mt-1 mb-1 whitespace-nowrap">DINAS PENDIDIKAN PEMUDA DAN OLAHRAGA</h1>
+                            <p className="text-xs">Alamat: Jalan Jati Gunung Bale Telp. (0457) 71775-71885 Donggala</p>
                         </div>
-                        <div className="w-24 flex-shrink-0"></div>
+                        <div className="w-20 flex-shrink-0"></div>
                     </div>
 
-                    <div className="flex justify-between mb-8">
-                        <div>
+                    <div className="flex justify-between mb-4">
+                        <div className="w-1/2">
                             <table className="w-full">
                                 <tbody>
-                                    <tr><td className="w-16">Nomor</td><td className="w-4">:</td><td>12/822.2/DISDIKPORA/{currentYear}</td></tr>
-                                    <tr><td>Lamp.</td><td>:</td><td>-</td></tr>
-                                    <tr><td>Perihal</td><td>:</td><td className="font-bold underline">KENAIKAN GAJI BERKALA</td></tr>
+                                    <tr><td className="w-16 align-top">Nomor</td><td className="w-4 align-top">:</td><td className="align-top font-bold">{printData?.nomorSkBaru || `12/822.2/DISDIKPORA/${currentYear}`}</td></tr>
+                                    <tr><td className="align-top">Lamp.</td><td className="align-top">:</td><td className="align-top">-</td></tr>
+                                    <tr><td className="align-top">Perihal</td><td className="align-top">:</td><td className="font-bold underline align-top">KENAIKAN GAJI BERKALA</td></tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div className="text-right">
-                            <p>Donggala, {formatDate(new Date().toISOString())}</p><br/>
-                            <p>Kepada</p><p>Yth. Kepala Badan Pengelolaan</p><p>Keuangan dan Aset Daerah</p>
-                            <p>Kabupaten Donggala</p><p>di -</p><p className="ml-8 font-bold">Donggala</p>
+                        <div className="w-1/2 flex flex-col items-end text-left">
+                            <div className="w-64">
+                                <p>Donggala, {formatDate(printData?.tglSkBaru || new Date().toISOString())}</p>
+                                <div className="mt-6">
+                                    <p>Kepada</p>
+                                    <p>Yth. Kepala Badan Pengelolaan</p>
+                                    <p className="pl-6">Keuangan dan Aset Daerah</p>
+                                    <p className="pl-6">Kabupaten Donggala</p>
+                                    <p>di -</p>
+                                    <p className="pl-8 font-bold">Donggala</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="mb-6 text-justify">
-                        <p className="mb-4">Dengan ini diberitahukan bahwa berhubung dengan telah dipenuhinya masa kerja dan syarat-syarat lainnya kepada:</p>
-                        <table className="w-full mb-4 ml-4">
+                    <div className="mb-4 text-justify">
+                        <p className="mb-2">Dengan ini diberitahukan bahwa berhubung dengan telah dipenuhinya masa kerja dan syarat-syarat lainnya kepada:</p>
+                        <table className="w-full mb-3 ml-4">
                             <tbody>
                                 <tr><td className="w-6">1.</td><td className="w-48">Nama</td><td className="w-4">:</td><td className="font-bold">{data.nama}</td></tr>
                                 <tr><td>2.</td><td>NIP</td><td>:</td><td>{data.nip}</td></tr>
@@ -234,21 +243,21 @@
                             </tbody>
                         </table>
 
-                        <p className="mb-4">Atas dasar Surat Keputusan terakhir tentang gaji/pangkat yang ditetapkan:</p>
-                        <table className="w-full mb-4 ml-4">
+                        <p className="mb-2">Atas dasar Surat Keputusan terakhir tentang gaji/pangkat yang ditetapkan:</p>
+                        <table className="w-full mb-3 ml-4">
                             <tbody>
                                 <tr><td className="w-6">a.</td><td className="w-48">Oleh Pejabat</td><td className="w-4">:</td><td>Kepala Dinas Pendidikan</td></tr>
-                                <tr><td>b.</td><td>Nomor dan Tanggal SK</td><td>:</td><td>50/822.2/DISDIKBUD, {formatDate(data.tglGajiLama)}</td></tr>
+                                <tr><td>b.</td><td>Nomor dan Tanggal SK</td><td>:</td><td>{printData?.nomorSkLama || '50/822.2/DISDIKBUD'}, {formatDate(printData?.tglSkLama || data.tglGajiLama)}</td></tr>
                                 <tr><td>c.</td><td>Tgl. Mulai berlakunya gaji tsb (TMT)</td><td>:</td><td>{formatDate(data.tmtLama || data.tglGajiLama)}</td></tr>
                                 <tr><td>d.</td><td>Masa Kerja Gol. Pada tgl. tsb</td><td>:</td><td>{data.masaKerjaLamaTahun} Tahun {data.masaKerjaLamaBulan} Bulan</td></tr>
                             </tbody>
                         </table>
 
-                        <p className="mb-4 font-bold">Diberikan Kenaikan Gaji Berkala hingga memperoleh:</p>
-                        <table className="w-full mb-4 ml-4 font-bold">
+                        <p className="mb-2 font-bold">Diberikan Kenaikan Gaji Berkala hingga memperoleh:</p>
+                        <table className="w-full mb-2 ml-4 font-bold">
                             <tbody>
                                 <tr><td className="w-6">8.</td><td className="w-48">Gaji Pokok Baru</td><td className="w-4">:</td><td>{formatRupiah(data.gajiBaru)}</td></tr>
-                                <tr><td></td><td colSpan="3" className="italic font-normal">(Terbilang: {terbilang(data.gajiBaru)} Rupiah)</td></tr>
+                                <tr><td></td><td colSpan="3" className="italic font-normal pb-1">(Terbilang: {terbilang(data.gajiBaru)} Rupiah)</td></tr>
                                 <tr><td>9.</td><td>Berdasarkan Masa Kerja</td><td>:</td><td>{data.masaKerjaBaruTahun} Tahun {data.masaKerjaBaruBulan} Bulan</td></tr>
                                 <tr><td>10.</td><td>Dalam Golongan</td><td>:</td><td>{data.pangkatGol.split(',')[1]?.trim() || data.pangkatGol}</td></tr>
                                 <tr><td>11.</td><td>Mulai Berlaku Tanggal</td><td>:</td><td>{formatDate(data.tglBerlaku)}</td></tr>
@@ -258,47 +267,54 @@
                         </table>
                     </div>
 
-                    <div className="flex justify-between items-end mt-12 mb-16 relative">
+                    <div className="flex justify-between items-end mt-6 mb-8 relative">
                         
-                        {/* BAGIAN KIRI: QR CODE & LOGO OVERLAY DONGGALA */}
-                        <div className="w-48 flex flex-col items-center ml-4">
-                             <div className="relative w-24 h-24 mb-1 p-1 bg-white border border-gray-300 rounded flex items-center justify-center">
-                                 <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" crossOrigin="anonymous" />
-                                 {/* Logo Donggala diletakkan absolut tepat di tengah QR Code (Dihapus crossOrigin agar tidak Error) */}
-                                 <img src={logoDonggalaUrl} alt="Logo Donggala" className="absolute w-6 h-6 bg-white p-0.5 rounded shadow-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                        {/* BAGIAN KIRI: QR CODE & LOGO DONGGALA DI TENGAH */}
+                        <div className="w-40 flex flex-col items-center ml-4">
+                             <div className="relative w-20 h-20 mb-1 p-1 bg-white border border-gray-300 rounded flex items-center justify-center">
+                                 {/* Trik CSS: Hapus crossOrigin pada logo agar tidak diblokir saat numpang di atas QR */}
+                                 <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" />
+                                 <img src={logoDonggalaUrl} alt="Logo Donggala" className="absolute w-5 h-5 bg-white p-[2px] rounded-full shadow-md top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                              </div>
-                             <p className="text-[12px] font-bold text-center text-blue-800 italic mt-1">Scan QR</p>
+                             <p className="text-[11px] font-bold text-center text-blue-800 italic mt-1">Scan QR</p>
                         </div>
 
                         {/* BAGIAN KANAN: TANDA TANGAN */}
                         <div className="w-64 text-center z-10">
                             <p>a.n. BUPATI DONGGALA</p>
-                            <p className="mb-4">KEPALA DINAS,</p>
+                            <p className="mb-2">KEPALA DINAS,</p>
                             
-                            <div className="h-24 relative flex items-center justify-center">
+                            <div className="h-20 relative flex items-center justify-center">
                                 {sigUrl ? (
-                                    <img src={sigUrl} alt="Tanda Tangan Kadis" className="h-28 object-contain absolute mix-blend-multiply" style={{top: '-10px', left: '10px'}} crossOrigin="anonymous" />
+                                    <img src={sigUrl} alt="Tanda Tangan Kadis" className="h-24 object-contain absolute mix-blend-multiply" style={{top: '-10px', left: '10px'}} crossOrigin="anonymous" />
                                 ) : (
                                     <div className="text-gray-300 italic text-xs">(Belum Ditandatangani)</div>
                                 )}
                             </div>
 
-                            <p className="font-bold underline mt-2">ANSYAR SUTIADI, S.Sos., M.Si</p>
+                            <p className="font-bold underline mt-1">ANSYAR SUTIADI, S.Sos., M.Si</p>
                             <p>Pembina Utama Muda, IV/c</p>
                             <p>NIP. 197212131992031004</p>
                         </div>
                     </div>
 
-                    <div className="mt-8 text-xs border-t pt-4">
+                    <div className="mt-4 text-[10.5px] border-t pt-2">
                         <p className="font-bold underline mb-1">Tembusan Surat ini disampaikan Kepada Yth:</p>
-                        <ol className="list-decimal pl-4 grid grid-cols-2 gap-x-4">
+                        <ol className="list-decimal pl-4 flex flex-col gap-y-0.5">
                             <li>Kepala Badan Pemeriksa Keuangan di Jakarta;</li>
                             <li>Menteri Dalam Negeri (Biro Kepegawaian) di Jakarta;</li>
+                            <li>Menteri Dalam Negeri (Biro Perencanaan) di Jakarta;</li>
                             <li>Kepala Badan Kepegawaian Negara di Jakarta;</li>
+                            <li>Kepala Biro Tata Usaha Kepegawaian BKN di Jakarta;</li>
                             <li>Kepala Biro Pensiunan dan Tunjangan BKN di Jakarta;</li>
-                            <li>Kepala Kantor Regional IV BKN Makassar;</li>
-                            <li>Kepala BKD Prop. Sulteng di Palu;</li>
-                            <li>Kepala Kantor PT. TASPEN (Persero) Cabang Palu;</li>
+                            <li>Kepala Kantor Regional IV BKN Makassar di Makassar;</li>
+                            <li>Kepala Badan Kepegawaian Daerah Prop. Sulteng di Palu;</li>
+                            <li>Kepala Badan Pengawasan Daerah Prop. Sulteng di Palu;</li>
+                            <li>Kepala Badan Pengawasan Daerah Kabupaten Donggala di Donggala;</li>
+                            <li>Kepala Badan Perbendaharaan dan Kas Negara di Palu;</li>
+                            <li>Kepala Kantor PT. TASPEN (Persero) Cabang Palu di Palu;</li>
+                            <li>Koordinator Wilayah Pendidikan Kecamatan yang bersangkutan;</li>
+                            <li>Bendaharawan/Pembuat Daftar Gaji Pegawai yang bersangkutan;</li>
                             <li>Saudara/i {data.nama} (Yang bersangkutan).</li>
                         </ol>
                     </div>
@@ -362,8 +378,19 @@
 
             const [activeTab, setActiveTab] = useState('list');
             const [selectedApp, setSelectedApp] = useState(null);
+            
+            // State Penomoran Admin
+            const [printData, setPrintData] = useState({
+                nomorSkBaru: '', tglSkBaru: '', nomorSkLama: '', tglSkLama: ''
+            });
+
             const [showSignaturePad, setShowSignaturePad] = useState(false);
             const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+
+            const [showPenomoranModal, setShowPenomoranModal] = useState(false);
+            const [penomoranForm, setPenomoranForm] = useState({
+                nomorSkBaru: '', tglSkBaru: '', nomorSkLama: '', tglSkLama: ''
+            });
 
             useEffect(() => {
                 if(SCRIPT_URL !== "MASUKKAN_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DISINI") {
@@ -392,6 +419,17 @@
                 setAuthForm({ username: '', password: '' });
             };
 
+            const handleOpenPreview = (app) => {
+                setSelectedApp(app);
+                setPrintData({
+                    nomorSkBaru: app.nomorSkBaru || `12/822.2/DISDIKPORA/${new Date().getFullYear()}`,
+                    tglSkBaru: app.tglSkBaru ? app.tglSkBaru.split('T')[0] : new Date().toISOString().split('T')[0],
+                    nomorSkLama: app.nomorSkLama || '50/822.2/DISDIKBUD',
+                    tglSkLama: app.tglSkLama ? app.tglSkLama.split('T')[0] : (app.tglGajiLama || '')
+                });
+                setShowDocumentPreview(true);
+            };
+
             const handlePegawaiNipChange = (e) => {
                 const val = e.target.value;
                 const foundPegawai = applications.find(app => app.nip === val);
@@ -404,20 +442,16 @@
             };
 
             const handlePegawaiWaChange = (e) => {
-                // Hanya izinkan angka untuk nomor telepon, mencegah error NIP diisi ke WA
                 const val = e.target.value.replace(/\D/g, '');
                 setLoginForm({ ...loginForm, wa: val });
             };
 
             const handleLoginPegawai = (e) => {
                 e.preventDefault();
-                
-                // Mencegah NIP dimasukkan ke kolom WhatsApp (NIP biasanya 18 digit, No HP max 15 digit)
                 if (loginForm.wa.length >= 16) {
                     alert("Nomor WhatsApp tidak valid. Tolong pastikan Anda tidak memasukkan NIP ke dalam kolom No. WhatsApp.");
                     return;
                 }
-
                 if(loginForm.nip && loginForm.nama) {
                     setUser({ role: 'pegawai', data: loginForm });
                     setActiveTab('list');
@@ -560,6 +594,15 @@
                 setIsLoading(false);
             };
 
+            const handleSimpanPenomoran = () => {
+                if(!penomoranForm.nomorSkBaru || !penomoranForm.tglSkBaru || !penomoranForm.nomorSkLama || !penomoranForm.tglSkLama) {
+                    alert("Mohon lengkapi semua kolom Penomoran SK!");
+                    return;
+                }
+                updateStatusKeDatabase(selectedApp.id, 'VERIFIED', penomoranForm);
+                setShowPenomoranModal(false);
+            };
+
             const handleKadisSign = (signatureDataUrl) => {
                 updateStatusKeDatabase(selectedApp.id, 'SIGNED', { signatureKadisBase64: signatureDataUrl });
                 setShowSignaturePad(false);
@@ -584,13 +627,12 @@
             const handleWA = (waNumber, nama, status) => {
                 let phone = String(waNumber).replace(/\D/g, ''); 
                 
-                // Mencegah error jika data di database terlanjur berisi NIP pemohon (18 digit angka / awalan 19)
-                if (phone.length >= 16 || phone.startsWith('19')) {
-                    alert("Gagal Buka WhatsApp.\n\nData No. HP pemohon ini tampaknya salah (Sepertinya berisi NIP: " + phone + ").\nSilakan hapus data pengajuan tes ini dan ajukan ulang dengan No WA yang benar.");
+                // Mencegah WA nyasar jika nomor HP diisi dengan NIP
+                if (phone.length > 15 || phone.length < 9 || phone.startsWith('19')) {
+                    alert(`Gagal Buka WhatsApp.\n\nNomor HP pemohon tidak valid (${waNumber}). Sepertinya pemohon salah memasukkan NIP ke kolom WA.\n\nSilakan hapus/tolak pengajuan ini dan minta pemohon mengulang dengan No WA yang benar.`);
                     return;
                 }
 
-                // Normalisasi ke +62 standar Indonesia
                 if (phone.startsWith('0')) {
                     phone = '62' + phone.substring(1); 
                 } else if (phone.startsWith('8')) {
@@ -712,7 +754,7 @@
                                                         {getStatusBadge(app.status)}
                                                         {app.status === 'COMPLETED' && (
                                                             <div className="flex gap-2">
-                                                                <button onClick={() => { setSelectedApp(app); setShowDocumentPreview(true); }} className="text-blue-600 text-sm font-medium hover:underline"><i className="fas fa-eye mr-1"></i> Preview SK</button>
+                                                                <button onClick={() => handleOpenPreview(app)} className="text-blue-600 text-sm font-medium hover:underline"><i className="fas fa-eye mr-1"></i> Preview SK</button>
                                                                 {app.fileFinalUrl && <a href={app.fileFinalUrl} target="_blank" className="text-emerald-600 text-sm font-medium hover:underline"><i className="fas fa-download mr-1"></i> Unduh Asli</a>}
                                                             </div>
                                                         )}
@@ -760,7 +802,7 @@
                                             <h3 className="font-bold border-b pb-2 text-slate-700 flex items-center gap-2"><i className="fas fa-money-bill-wave text-emerald-500"></i> Data Gaji & Masa Kerja</h3>
                                             
                                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <p className="text-sm font-bold mb-3 text-slate-700"><i className="fas fa-history text-slate-400 mr-1"></i> Berdasarkan SK Berkala Terakhir:</p>
+                                                <p className="text-sm font-bold mb-3 text-slate-700"><i className="fas fa-history text-slate-400 mr-1"></i> Berdasarkan SK terakhir:</p>
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                                     <div>
                                                         <label className="text-xs font-semibold text-slate-600 block mb-1 cursor-pointer">Gaji (Rp)</label>
@@ -852,7 +894,6 @@
                                                             <td className="p-3"><div className="font-medium text-slate-800">{formatRupiah(app.gajiBaru)}</div><div className="text-xs text-slate-500">Gol. {app.pangkatGol.split(',')[1] || app.pangkatGol}</div></td>
                                                             <td className="p-3 flex justify-center items-center gap-2">
                                                                 
-                                                                {/* TOMBOL WA UNTUK SEMUA STATUS */}
                                                                 <button onClick={() => handleWA(app.wa, app.nama, app.status)} className="bg-green-500 text-white px-2 py-1.5 rounded hover:bg-green-600 font-medium text-xs flex items-center gap-1 shadow-sm" title="Kirim Notifikasi WA">
                                                                     <i className="fab fa-whatsapp text-sm"></i> WA
                                                                 </button>
@@ -860,15 +901,26 @@
                                                                 {app.status === 'SUBMITTED' && (
                                                                     <>
                                                                         {app.fileBerkalaLamaUrl && <a href={app.fileBerkalaLamaUrl} target="_blank" className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-medium text-xs"><i className="fas fa-file-pdf mr-1"></i> Cek Berkas</a>}
-                                                                        <button onClick={() => updateStatusKeDatabase(app.id, 'VERIFIED')} className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 font-medium text-xs"><i className="fas fa-check-circle mr-1"></i> Setujui</button>
-                                                                        <button onClick={() => { if(window.confirm('Tolak pengajuan ini karena berkas tidak sesuai?')) updateStatusKeDatabase(app.id, 'REJECTED') }} className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 font-medium text-xs"><i className="fas fa-times-circle mr-1"></i> Tolak</button>
+                                                                        
+                                                                        <button onClick={() => {
+                                                                            setSelectedApp(app);
+                                                                            setPenomoranForm({
+                                                                                nomorSkBaru: `12/822.2/DISDIKPORA/${new Date().getFullYear()}`,
+                                                                                tglSkBaru: new Date().toISOString().split('T')[0],
+                                                                                nomorSkLama: '50/822.2/DISDIKBUD',
+                                                                                tglSkLama: app.tglGajiLama || ''
+                                                                            });
+                                                                            setShowPenomoranModal(true);
+                                                                        }} className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-200 font-medium text-xs"><i className="fas fa-check-circle mr-1"></i> Setujui</button>
+
+                                                                        <button onClick={() => { if(window.confirm('Apakah Anda yakin ingin MENOLAK pengajuan ini karena berkas tidak sesuai?')) updateStatusKeDatabase(app.id, 'REJECTED') }} className="bg-red-100 text-red-700 px-3 py-1.5 rounded hover:bg-red-200 font-medium text-xs"><i className="fas fa-times-circle mr-1"></i> Tolak</button>
                                                                     </>
                                                                 )}
                                                                 {app.status === 'SIGNED' && (
-                                                                    <button onClick={() => { setSelectedApp(app); setShowDocumentPreview(true); }} className="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 font-medium text-xs"><i className="fas fa-print mr-1"></i> Cetak / Upload</button>
+                                                                    <button onClick={() => handleOpenPreview(app)} className="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 font-medium text-xs"><i className="fas fa-print mr-1"></i> Cetak / Upload</button>
                                                                 )}
                                                                 {app.status === 'COMPLETED' && (
-                                                                    <button onClick={() => { setSelectedApp(app); setShowDocumentPreview(true); }} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded hover:bg-slate-200 font-medium text-xs"><i className="fas fa-eye mr-1"></i> Lihat Dokumen</button>
+                                                                    <button onClick={() => handleOpenPreview(app)} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded hover:bg-slate-200 font-medium text-xs"><i className="fas fa-eye mr-1"></i> Lihat Dokumen</button>
                                                                 )}
                                                             </td>
                                                         </tr>
@@ -907,7 +959,7 @@
                                                         <div className="flex justify-between border-t border-dashed mt-1 pt-1"><span className="text-slate-800 font-bold">Usulan Gaji Baru:</span> <span className="font-bold text-blue-600">{formatRupiah(app.gajiBaru)}</span></div>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => {setSelectedApp(app); setShowDocumentPreview(true);}} className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 rounded text-sm font-medium"><i className="fas fa-eye mr-1"></i> Draft SK</button>
+                                                        <button onClick={() => handleOpenPreview(app)} className="flex-1 bg-white border border-blue-600 text-blue-600 py-2 rounded text-sm font-medium"><i className="fas fa-eye mr-1"></i> Draft SK</button>
                                                         <button onClick={() => {setSelectedApp(app); setShowSignaturePad(true);}} className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-medium"><i className="fas fa-pen-nib mr-1"></i> Tanda Tangani</button>
                                                     </div>
                                                 </div>
@@ -933,6 +985,49 @@
                     <div className="print:hidden">
                         {renderViews()}
                         
+                        {/* MODAL PENOMORAN SK OLEH VERIFIKATOR */}
+                        {showPenomoranModal && selectedApp && (
+                            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                                <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+                                    <div className="p-4 bg-blue-700 text-white flex justify-between items-center">
+                                        <h3 className="font-bold"><i className="fas fa-edit mr-2"></i>Penomoran SK Berkala</h3>
+                                        <button onClick={() => setShowPenomoranModal(false)} className="text-blue-200 hover:text-white"><i className="fas fa-times"></i></button>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 rounded-lg">
+                                            <i className="fas fa-info-circle mr-1"></i> Silakan lengkapi Nomor dan Tanggal Surat Keputusan secara definitif sebelum diteruskan ke Kepala Dinas.
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Nomor SK Baru</label>
+                                                <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={penomoranForm.nomorSkBaru} onChange={e => setPenomoranForm({...penomoranForm, nomorSkBaru: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Tanggal SK Baru</label>
+                                                <input type="date" className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={penomoranForm.tglSkBaru} onChange={e => setPenomoranForm({...penomoranForm, tglSkBaru: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Nomor SK Terakhir</label>
+                                                <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={penomoranForm.nomorSkLama} onChange={e => setPenomoranForm({...penomoranForm, nomorSkLama: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Tanggal SK Terakhir</label>
+                                                <input type="date" className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value={penomoranForm.tglSkLama} onChange={e => setPenomoranForm({...penomoranForm, tglSkLama: e.target.value})} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 border-t flex justify-end gap-2 bg-slate-50">
+                                        <button onClick={() => setShowPenomoranModal(false)} className="px-4 py-2 text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg font-medium transition-colors">Batal</button>
+                                        <button onClick={handleSimpanPenomoran} disabled={isLoading} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md transition-colors disabled:opacity-50">
+                                            {isLoading ? 'Memproses...' : 'Simpan & Teruskan'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* MODAL PREVIEW & MENU CETAK */}
                         {showDocumentPreview && selectedApp && (
                             <div className="fixed inset-0 bg-slate-900/90 z-50 flex flex-col overflow-y-auto">
@@ -952,14 +1047,15 @@
                                                 <button onClick={handleUploadFinal} disabled={isLoading} className="bg-emerald-600 text-white px-4 py-2 rounded font-medium disabled:bg-slate-400"><i className="fas fa-upload mr-1"></i> 3. Upload & Selesai</button>
                                             </>
                                         )}
-                                        {user.role === 'kadis' && (
+                                        {user.role === 'kadis' && selectedApp.status === 'VERIFIED' && (
                                             <button onClick={() => {setShowDocumentPreview(false); setShowSignaturePad(true);}} className="bg-blue-600 text-white px-4 py-2 rounded font-medium">Lanjut TTD</button>
                                         )}
                                         <button onClick={() => setShowDocumentPreview(false)} className="bg-slate-100 text-slate-600 px-4 py-2 rounded font-medium"><i className="fas fa-times mr-1"></i> Tutup</button>
                                     </div>
                                 </div>
-                                <div className="p-8 flex-grow bg-slate-200 flex justify-center items-start">
-                                    <div className="shadow-2xl"><SuratBerkala data={selectedApp} /></div>
+                                
+                                <div className="p-6 flex-grow bg-slate-200 flex justify-center items-start">
+                                    <div className="shadow-2xl"><SuratBerkala data={selectedApp} printData={printData} /></div>
                                 </div>
                             </div>
                         )}
@@ -967,7 +1063,7 @@
 
                     {/* BAGIAN INI HANYA TAMPIL SAAT DI MESIN CETAK PRINTER (hidden print:block) */}
                     <div className="hidden print:block w-full bg-white text-black">
-                        {selectedApp && <SuratBerkala data={selectedApp} />}
+                        {selectedApp && <SuratBerkala data={selectedApp} printData={printData} />}
                     </div>
                 </>
             );
