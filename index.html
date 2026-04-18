@@ -49,7 +49,7 @@
         // =========================================================================
         // PENTING: Ganti URL di bawah dengan URL WEB APP Google Apps Script Anda!
         // =========================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxNXdBeoGggtNaQmDS_n9LfhYp9tloutPJF0yTOd4OMFaDPaugDnLUaOyKZ577aCLM7/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGiEc6I9TCMcGB42OmsiFTdrO2_kiGRGsCM-wjUFXNXvStxJOIEFB4EN0AosPEhIei/exec";
 
         const { useState, useEffect, useRef } = React;
 
@@ -201,7 +201,6 @@
 
             // --- GENERATE QR CODE DINAMIS DENGAN CSS OVERLAY DONGGALA ---
             const qrDataText = `e-KGB Disdikpora Donggala\nNama: ${data.nama}\nNIP: ${data.nip}\nGol: ${data.pangkatGol}\nGaji Baru: ${formatRupiah(data.gajiBaru)}\nTMT: ${formatDate(data.tglBerlaku)}`;
-            // Menggunakan API QR murni (tanpa logo api) tapi dengan Quality H (High 30%) agar aman ditimpa logo
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=H&data=${encodeURIComponent(qrDataText)}`;
             const logoDonggalaUrl = "https://i.ibb.co.com/5xhN0cm1/Logo-Donggala.png";
 
@@ -287,9 +286,8 @@
                         {/* BAGIAN KIRI: QR CODE & LOGO OVERLAY DONGGALA */}
                         <div className="w-40 flex flex-col items-center ml-4">
                              <div className="relative w-20 h-20 mb-1 p-1 bg-white border border-gray-300 rounded flex items-center justify-center">
-                                 <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" crossOrigin="anonymous" />
-                                 {/* Trik CSS absolut tengah, background putih sedikit */}
-                                 <img src={logoDonggalaUrl} alt="Logo Donggala" className="absolute w-5 h-5 bg-white p-0.5 rounded shadow-sm top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                                 <img src={qrCodeUrl} alt="QR Code Keaslian" className="w-full h-full object-contain" />
+                                 <img src={logoDonggalaUrl} alt="Logo Donggala" className="absolute w-5 h-5 bg-white p-[2px] rounded-full shadow-md top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                              </div>
                              <p className="text-[12px] font-bold text-center text-blue-800 italic mt-1">Scan QR</p>
                         </div>
@@ -338,7 +336,6 @@
         };
 
         const AppLayout = ({ children, title, user, isLoading, onLogout, onRefresh }) => {
-            // Tentukan label tambahan jika dia verifikator
             let headerSubtitle = '';
             if (user.role === 'verifikator') headerSubtitle = ` | Kec. ${user.data.kecamatan}`;
 
@@ -386,7 +383,8 @@
             const [adminUsers, setAdminUsers] = useState([]); 
             const [isLoading, setIsLoading] = useState(false);
             
-            // Login View State (Hanya 3 Tabs di UI, Superadmin sembunyi di Verifikator)
+            // --- Fitur Pintu Rahasia Admin ---
+            const [isAdminMode, setIsAdminMode] = useState(false);
             const [loginTab, setLoginTab] = useState('pegawai');
 
             // Form States
@@ -400,13 +398,10 @@
             const [fileBerkalaObj, setFileBerkalaObj] = useState(null);
             const [fileFinalObj, setFileFinalObj] = useState(null);
 
-            // Form Manajemen User (Superadmin)
             const [newUserForm, setNewUserForm] = useState({ username: '', password: '', kecamatan: '' });
-
             const [activeTab, setActiveTab] = useState('list');
             const [selectedApp, setSelectedApp] = useState(null);
             
-            // State Penomoran Admin
             const [printData, setPrintData] = useState({
                 nomorSkBaru: '', tglSkBaru: '', nomorSkLama: '', tglSkLama: ''
             });
@@ -468,6 +463,8 @@
                 setSelectedApp(null); 
                 setShowDocumentPreview(false);
                 setAuthForm({ username: '', password: '' });
+                setIsAdminMode(false);
+                setLoginTab('pegawai');
             };
 
             const handleOpenPreview = (app) => {
@@ -500,7 +497,6 @@
             const handleLoginPegawai = (e) => {
                 e.preventDefault();
                 
-                // Mencegah NIP dimasukkan ke kolom WhatsApp
                 if (loginForm.wa.length >= 16 || loginForm.wa.startsWith('19') || loginForm.wa.startsWith('20')) {
                     alert("Nomor WhatsApp tidak valid! Anda sepertinya memasukkan NIP ke dalam kolom No. WhatsApp.");
                     return;
@@ -527,7 +523,8 @@
                     const resJson = await response.json();
                     
                     if(resJson.status === 'success') {
-                        // AMBIL ROLE ASLI DARI DATABASE (Bisa jadi dia login lewat tab verifikator tapi akunnya Superadmin)
+                        // Backend mendeteksi role asli. Jika login via tab verifikator dgn akun superadmin, 
+                        // actualRole otomatis menjadi 'superadmin'
                         const actualRole = resJson.role;
 
                         let namaTampil = 'Admin';
@@ -739,11 +736,9 @@
                 window.print();
             };
 
-            // --- FUNGSI WA OTOMATIS: ANTI ERROR NIP ---
             const handleWA = (waNumber, nama, status) => {
                 let phone = String(waNumber).replace(/\D/g, ''); 
                 
-                // Block jika Nomor HP Pemohon sebenarnya adalah NIP
                 if (phone.length >= 16 || phone.startsWith('19') || phone.startsWith('20')) {
                     alert(`Gagal Buka WhatsApp.\n\nData No. HP pemohon ini tampaknya salah (Sepertinya berisi NIP: ${phone}).\n\nSilakan hapus/tolak pengajuan ini dan minta pemohon mengulang dengan No WA yang benar.`);
                     return;
@@ -782,7 +777,8 @@
             const renderViews = () => {
                 if (!user) {
                     return (
-                        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+                        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 relative">
+                            
                             <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative">
                                 {isLoading && (
                                     <div className="absolute top-0 left-0 w-full h-1 bg-blue-200 overflow-hidden z-50">
@@ -795,47 +791,67 @@
                                     <h1 className="text-2xl font-bold mb-2">e-KGB Donggala</h1>
                                     <p className="text-blue-100 text-sm">Sistem Informasi Kenaikan Gaji Berkala<br/>Dinas Pendidikan Pemuda & Olahraga</p>
                                 </div>
-                                <div className="p-8 md:w-3/5 bg-white">
-                                    <div className="flex gap-2 sm:gap-4 border-b mb-6 overflow-x-auto no-scrollbar">
-                                        <button onClick={()=>setLoginTab('pegawai')} className={`pb-3 font-bold transition-all text-xs sm:text-sm whitespace-nowrap px-2 ${loginTab==='pegawai'?'text-blue-600 border-b-2 border-blue-600':'text-gray-400 hover:text-blue-400'}`}>Pemohon</button>
-                                        <button onClick={()=>setLoginTab('verifikator')} className={`pb-3 font-bold transition-all text-xs sm:text-sm whitespace-nowrap px-2 ${loginTab==='verifikator'?'text-amber-500 border-b-2 border-amber-500':'text-gray-400 hover:text-amber-400'}`}>Verifikator</button>
-                                        <button onClick={()=>setLoginTab('kadis')} className={`pb-3 font-bold transition-all text-xs sm:text-sm whitespace-nowrap px-2 ${loginTab==='kadis'?'text-emerald-600 border-b-2 border-emerald-600':'text-gray-400 hover:text-emerald-400'}`}>Kadis</button>
-                                        {/* TAB SUPERADMIN DIHILANGKAN DARI MENU SESUAI PERMINTAAN */}
-                                    </div>
+                                <div className="p-8 md:w-3/5 bg-white relative">
                                     
+                                    {/* TOMBOL RAHASIA UNTUK MEMUNCULKAN TAB ADMIN */}
+                                    <button 
+                                        onClick={() => {
+                                            const newMode = !isAdminMode;
+                                            setIsAdminMode(newMode);
+                                            setLoginTab(newMode ? 'verifikator' : 'pegawai');
+                                        }} 
+                                        className="absolute top-4 right-4 text-slate-300 hover:text-slate-500 text-xl cursor-pointer p-2 z-50 transition-colors"
+                                        title="Akses Administrator"
+                                    >
+                                        <i className="fas fa-lock"></i>
+                                    </button>
+
+                                    {/* MENU TABS ADMIN (HANYA MUNCUL JIKA GEMBOK DIKLIK) */}
+                                    {isAdminMode && (
+                                        <div className="flex gap-2 sm:gap-4 border-b mb-6 overflow-x-auto no-scrollbar pr-8">
+                                            <button onClick={()=>setLoginTab('verifikator')} className={`pb-3 font-bold transition-all text-xs sm:text-sm whitespace-nowrap px-2 ${loginTab==='verifikator'?'text-amber-500 border-b-2 border-amber-500':'text-gray-400 hover:text-amber-400'}`}>Verifikator</button>
+                                            <button onClick={()=>setLoginTab('kadis')} className={`pb-3 font-bold transition-all text-xs sm:text-sm whitespace-nowrap px-2 ${loginTab==='kadis'?'text-emerald-600 border-b-2 border-emerald-600':'text-gray-400 hover:text-emerald-400'}`}>Kadis</button>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-6">
-                                        {loginTab === 'pegawai' ? (
-                                            <form onSubmit={handleLoginPegawai} className="space-y-4">
-                                                <div>
-                                                    <label className="text-sm font-medium text-slate-600 block mb-1">Nomor Induk Pegawai (NIP)</label>
-                                                    <input type="text" placeholder="Ketik NIP Anda..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-medium" value={loginForm.nip} onChange={handlePegawaiNipChange} />
-                                                </div>
-                                                <div>
-                                                    <label className="text-sm font-medium text-slate-600 block mb-1">Nama Lengkap</label>
-                                                    <input type="text" placeholder="Masukkan Nama" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.nama} onChange={e => setLoginForm({...loginForm, nama: e.target.value})} />
-                                                    {applications.find(a=>a.nip===loginForm.nip) && <p className="text-xs text-green-600 mt-1"><i className="fas fa-check-circle"></i> Data ditemukan! Nama & WA diisi otomatis.</p>}
-                                                </div>
-                                                <div>
-                                                    <label className="text-sm font-medium text-slate-600 block mb-1">No. WhatsApp</label>
-                                                    <input type="tel" maxLength="15" placeholder="Contoh: 08123456789" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.wa} onChange={handlePegawaiWaChange} />
-                                                </div>
-                                                <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold shadow-md mt-2">Masuk ke Dashboard</button>
-                                            </form>
+                                        {!isAdminMode ? (
+                                            <>
+                                                <h3 className="font-bold text-lg text-slate-800 mb-6 border-b pb-2">
+                                                    <i className="fas fa-user-edit text-blue-600 mr-2"></i>Login Pemohon (Pegawai)
+                                                </h3>
+                                                <form onSubmit={handleLoginPegawai} className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-medium text-slate-600 block mb-1">Nomor Induk Pegawai (NIP)</label>
+                                                        <input type="text" placeholder="Ketik NIP Anda..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-medium" value={loginForm.nip} onChange={handlePegawaiNipChange} />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-slate-600 block mb-1">Nama Lengkap</label>
+                                                        <input type="text" placeholder="Masukkan Nama" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.nama} onChange={e => setLoginForm({...loginForm, nama: e.target.value})} />
+                                                        {applications.find(a=>a.nip===loginForm.nip) && <p className="text-xs text-green-600 mt-1"><i className="fas fa-check-circle"></i> Data ditemukan! Nama & WA diisi otomatis.</p>}
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-slate-600 block mb-1">No. WhatsApp</label>
+                                                        <input type="tel" maxLength="15" placeholder="Contoh: 08123456789" required className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-4 transition-colors ${applications.find(a=>a.nip===loginForm.nip) ? 'border-green-400 bg-green-50 text-green-800 font-bold' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'}`} value={loginForm.wa} onChange={handlePegawaiWaChange} />
+                                                    </div>
+                                                    <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold shadow-md mt-2">Masuk ke Dashboard</button>
+                                                </form>
+                                            </>
                                         ) : (
                                             <form onSubmit={handleAdminLogin} className="space-y-4">
                                                 <div className="bg-slate-50 p-4 rounded-lg mb-4 text-sm text-slate-600 border flex items-start gap-2">
-                                                    <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
-                                                    <p>Silakan masukkan Username dan Password untuk mengakses sistem Admin ({loginTab.toUpperCase()}).</p>
+                                                    <i className="fas fa-shield-alt text-amber-500 mt-0.5"></i>
+                                                    <p>Silakan masukkan Username dan Password untuk mengakses panel kontrol sistem Admin.</p>
                                                 </div>
                                                 <div>
                                                     <label className="text-sm font-medium text-slate-600 block mb-1">Username</label>
-                                                    <input type="text" placeholder="Ketik username..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={authForm.username} onChange={e => setAuthForm({...authForm, username: e.target.value})} />
+                                                    <input type="text" placeholder="Ketik username..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20" value={authForm.username} onChange={e => setAuthForm({...authForm, username: e.target.value})} />
                                                 </div>
                                                 <div>
                                                     <label className="text-sm font-medium text-slate-600 block mb-1">Password</label>
-                                                    <input type="password" placeholder="Ketik password..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} />
+                                                    <input type="password" placeholder="Ketik password..." required className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} />
                                                 </div>
-                                                <button type="submit" disabled={isLoading} className={`w-full text-white py-3 rounded-lg font-bold shadow-md mt-2 disabled:opacity-50 ${loginTab === 'verifikator' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                                                <button type="submit" disabled={isLoading} className={`w-full text-white py-3 rounded-lg font-bold shadow-md mt-2 disabled:opacity-50 ${loginTab === 'kadis' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'}`}>
                                                     {isLoading ? 'Memproses...' : `Masuk Admin`}
                                                 </button>
                                             </form>
